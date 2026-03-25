@@ -179,8 +179,10 @@ try {
             [Environment]::SetEnvironmentVariable($varName, $val, "Process")
         }
     }
-    # Reload PATH too
-    $env:Path = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
+    # Add CLI dir to current PATH (don't replace — preserve existing entries like dotnet)
+    if ($env:Path -notlike "*$InstallDir*") {
+        $env:Path = "$InstallDir;$env:Path"
+    }
     Write-Ok "Environment variables loaded into current session"
 
     Write-Host ""
