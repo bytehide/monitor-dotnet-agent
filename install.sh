@@ -194,7 +194,24 @@ if [ ! -f "$BINARY" ]; then
 fi
 chmod +x "$BINARY"
 
-# Install binary to PATH
+# Verify payload was extracted
+if [ ! -d "$TMPDIR/payload" ]; then
+    error "Archive does not contain 'payload/' directory with agent DLLs."
+    exit 1
+fi
+PAYLOAD_COUNT=$(ls -1 "$TMPDIR/payload/"*.dll 2>/dev/null | wc -l | tr -d ' ')
+info "Payload: $PAYLOAD_COUNT DLLs"
+
+# Run agent install from temp dir (where payload/ exists alongside the binary)
+if [ "$SKIP_INSTALL" = true ]; then
+    ok "Binary downloaded. Skipping agent install (--no-install)."
+else
+    info "Running agent install..."
+    echo ""
+    "$BINARY" install --token "$TOKEN" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
+fi
+
+# Copy binary to PATH for future use (status, config, logs, uninstall)
 info "Installing binary to $INSTALL_BIN_DIR..."
 mkdir -p "$INSTALL_BIN_DIR" 2>/dev/null || true
 
@@ -205,18 +222,6 @@ else
     sudo cp "$BINARY" "$INSTALL_BIN_DIR/bytehide-agent"
     sudo chmod +x "$INSTALL_BIN_DIR/bytehide-agent"
     ok "Binary installed: $INSTALL_BIN_DIR/bytehide-agent"
-fi
-
-# Run agent install
-if [ "$SKIP_INSTALL" = true ]; then
-    ok "Binary downloaded. Skipping agent install (--no-install)."
-    echo ""
-    echo "  To install the agent manually:"
-    echo "    bytehide-agent install --token <your-token>"
-else
-    info "Running agent install..."
-    echo ""
-    "$INSTALL_BIN_DIR/bytehide-agent" install --token "$TOKEN" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 fi
 
 echo ""
