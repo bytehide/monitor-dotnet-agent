@@ -164,6 +164,25 @@ try {
         }
     }
 
+    # ── Load env vars into current session ───────────────
+    # Registry vars only apply to NEW processes. Load them into the current
+    # PowerShell session so the user can launch apps immediately.
+    $agentVars = @(
+        "DOTNET_STARTUP_HOOKS",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES",
+        "BYTEHIDE_MONITOR_TOKEN",
+        "BYTEHIDE_MONITOR_CONFIG"
+    )
+    foreach ($varName in $agentVars) {
+        $val = [Environment]::GetEnvironmentVariable($varName, "Machine")
+        if ($val) {
+            [Environment]::SetEnvironmentVariable($varName, $val, "Process")
+        }
+    }
+    # Reload PATH too
+    $env:Path = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
+    Write-Ok "Environment variables loaded into current session"
+
     Write-Host ""
     Write-Ok "Done! ByteHide Server Agent is ready."
     Write-Host ""
@@ -174,7 +193,8 @@ try {
     Write-Host "    bytehide-agent uninstall     # Remove agent"
     Write-Host ""
     if (-not $NoInstall) {
-        Write-Warn "Restart any running .NET applications for protection to take effect."
+        Write-Host "  All .NET applications started from this session are now protected." -ForegroundColor Green
+        Write-Warn "Running applications need to be restarted to pick up protection."
     }
 }
 finally {
