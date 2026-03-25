@@ -4,11 +4,19 @@ Zero-code runtime protection (RASP) for .NET applications. Install once on any s
 
 ## Quick Install (no SDK required)
 
+**Linux / macOS:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/bytehide/monitor-dotnet-agent/main/install.sh | bash -s -- --token <your-token>
 ```
 
-This downloads a self-contained binary, installs the agent, and configures all .NET processes on the server for automatic protection.
+**Windows (PowerShell as Administrator):**
+```powershell
+irm https://raw.githubusercontent.com/bytehide/monitor-dotnet-agent/main/install.ps1 | iex
+```
+Or with token inline:
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/bytehide/monitor-dotnet-agent/main/install.ps1))) -Token "bh_xxxxxxxxxxxx"
+```
 
 ## Alternative: dotnet tool
 
@@ -49,19 +57,12 @@ bytehide-agent uninstall                  # Remove agent
 ## Docker / Containers
 
 ```dockerfile
-# Option A: Shell script (no SDK in image)
-RUN curl -sSL https://raw.githubusercontent.com/bytehide/monitor-dotnet-agent/main/install.sh | bash -s -- --token $BYTEHIDE_TOKEN
+# Install agent (no SDK needed in runtime image)
+RUN apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib/apt/lists/* \
+    && curl -sSL https://raw.githubusercontent.com/bytehide/monitor-dotnet-agent/main/install.sh | bash -s -- --token $BYTEHIDE_TOKEN
 
-# Option B: Multi-stage with dotnet tool
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-RUN dotnet tool install -g Bytehide.Monitor.AgentCli \
-    && ~/.dotnet/tools/bytehide-agent install --token $BYTEHIDE_TOKEN
-
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
-COPY --from=build /opt/bytehide/agent /opt/bytehide/agent
-ENV DOTNET_STARTUP_HOOKS=/opt/bytehide/agent/Bytehide.Monitor.ServerAgent.dll
-ENV ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=Bytehide.Monitor.ServerAgent
-ENV BYTEHIDE_MONITOR_TOKEN=<your-token>
+# Docker doesn't load /etc/profile.d/, so source the env vars
+ENTRYPOINT ["/bin/bash", "-c", "source /etc/profile.d/bytehide-agent.sh && exec dotnet myapp.dll"]
 ```
 
 ## Compatibility
